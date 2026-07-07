@@ -1,0 +1,24 @@
+name: mayuela
+version: '1.0-SNAPSHOT'
+main: org.minecraft.eden.Eden.mayuela.Mayuela
+api-version: '1.21'
+commands:
+  입장:
+    description: Mayuela game join and lobby command.
+    usage: /입장 [로비등록]
+  퇴장:
+    description: Cancel Mayuela ready participation.
+    usage: /퇴장
+  상점열기:
+    description: Open Mayuela bank shop.
+    usage: /상점열기
+  상점열기:
+    description: Open Mayuela bank shop.
+    usage: /상점열기
+  game:
+    description: Mayuela admin command.
+    usage: /game <시작|종료|reload|맵|제단등록|제단목록|상점등록|스폰등록|팀지정|팀해제|모니터링|pdc|코인설정|코인제거|코인최대|넉백설정>
+permissions:
+  mayuela.admin:
+    description: Allows Mayuela admin commands.
+    default: op
