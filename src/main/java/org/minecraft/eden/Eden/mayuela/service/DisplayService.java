@@ -57,7 +57,6 @@ public final class DisplayService {
             entity.setInvulnerable(true);
         });
         playerDisplays.put(player.getUniqueId(), display);
-        updatePlayerIdentity(player, team, bountyRewardCoins);
         updateBountyDisplay(player, team, bountyRewardCoins);
     }
 

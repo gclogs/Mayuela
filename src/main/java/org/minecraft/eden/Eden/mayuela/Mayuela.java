@@ -67,7 +67,6 @@ public final class Mayuela extends JavaPlugin {
         getCommand("입장").setTabCompleter(joinCommand);
         getCommand("퇴장").setExecutor(leaveCommand);
         getCommand("상점열기").setExecutor(shopCommand);
-        getCommand("상점열기").setExecutor(shopCommand);
         getCommand("game").setExecutor(gameCommand);
         getCommand("game").setTabCompleter(gameCommand);
 
