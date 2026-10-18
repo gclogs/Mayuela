@@ -17,6 +17,8 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
     testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.11.4")
+    testImplementation("org.mockito:mockito-core:5.15.2")
 }
 
 tasks.register('teamServiceTest', Exec) {
@@ -29,9 +31,17 @@ tasks.register('teamServiceTest', Exec) {
             'TeamServiceBehaviorChecks'
 }
 
-test {
-    failOnNoDiscoveredTests = false
+tasks.register('gameplayTest', Exec) {
+    dependsOn testClasses
+    def runtimeClasspath = configurations.testRuntimeClasspath
+    def launcher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(21) }
+    commandLine launcher.get().executablePath.asFile.absolutePath, '-cp',
+            "build/classes/java/test${File.pathSeparator}build/classes/java/main${File.pathSeparator}build/resources/main${File.pathSeparator}${runtimeClasspath.asPath}",
+            'GameplayBehaviorChecks'
 }
+
+test { failOnNoDiscoveredTests = false }
+tasks.named('check') { dependsOn 'teamServiceTest', 'gameplayTest' }
 
 tasks {
     runServer {
@@ -47,9 +57,7 @@ java {
     def javaVersion = JavaVersion.toVersion(targetJavaVersion)
     sourceCompatibility = javaVersion
     targetCompatibility = javaVersion
-    if (JavaVersion.current() < javaVersion) {
-        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
-    }
+    toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
 }
 
 tasks.withType(JavaCompile).configureEach {
