@@ -81,9 +81,13 @@ public final class PlayerLifecycleListener implements Listener {
             event.deathMessage(null);
             matchStatsService.recordDeath(matchStatsService.elapsedSeconds(), event.getPlayer(), event.getPlayer().getKiller(), event.getPlayer().getLastDamageCause() == null ? null : event.getPlayer().getLastDamageCause().getCause());
             GameTeam victimTeam = teamService.findByPlayer(event.getPlayer().getUniqueId()).orElse(null);
-            boolean releaseBountyAfterDeath = victimTeam != null && victimTeam.bountyWanted();
-            grantBountyRewardIfNeeded(event.getPlayer(), event.getPlayer().getKiller());
-            if (releaseBountyAfterDeath) {
+            // getKiller() can retain an earlier attacker after an unrelated suicide.
+            Player bountyKiller = event.getDamageSource().getCausingEntity() instanceof Player player ? player : null;
+            GameTeam killerTeam = bountyKiller == null ? null : teamService.findByPlayer(bountyKiller.getUniqueId()).orElse(null);
+            if (victimTeam != null && victimTeam.bountyWanted() && killerTeam != null
+                    && !killerTeam.id().equals(victimTeam.id())
+                    && !bountyKiller.getUniqueId().equals(event.getPlayer().getUniqueId())) {
+                grantBountyReward(event.getPlayer(), bountyKiller, victimTeam);
                 altarService.releaseBountyAfterDeath(victimTeam, event.getPlayer(), matchStatsService.elapsedSeconds());
             }
             broadcastDeathMessage(event.getPlayer(), event.getPlayer().getKiller());
@@ -132,22 +136,7 @@ public final class PlayerLifecycleListener implements Listener {
                 .append(Component.text(player.getName(), color));
     }
 
-    private void grantBountyRewardIfNeeded(Player victim, Player killer) {
-        if (killer == null || killer.getUniqueId().equals(victim.getUniqueId())) {
-            return;
-        }
-        GameTeam victimTeam = teamService.findByPlayer(victim.getUniqueId()).orElse(null);
-        if (victimTeam == null || !victimTeam.bountyWanted()) {
-            return;
-        }
-        GameTeam killerTeam = teamService.findByPlayer(killer.getUniqueId()).orElse(null);
-        if (killerTeam == null) {
-            return;
-        }
-        if (killerTeam.id().equals(victimTeam.id())) {
-            messageService.send(killer, MayuelaMessage.BOUNTY_SAME_TEAM_NO_REWARD);
-            return;
-        }
+    private void grantBountyReward(Player victim, Player killer, GameTeam victimTeam) {
         if (victimTeam.bountyRewardClaimed(victim.getUniqueId())) {
             messageService.send(killer, MayuelaMessage.BOUNTY_ALREADY_REWARDED, victim.getName());
             return;

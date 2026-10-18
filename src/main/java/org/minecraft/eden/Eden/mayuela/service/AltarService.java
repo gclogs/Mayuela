@@ -284,7 +284,7 @@ public final class AltarService {
         java.util.ArrayList<Component> lines = new java.util.ArrayList<>();
         lines.add(Component.text("현상수배 설정: " + (configRepository.bountyEnabled() ? "ON" : "OFF")
                 + ", 발동 격차 " + formatPercent(configRepository.bountyActivateGapPercent())
-                + ", 해제 격차 " + formatPercent(configRepository.bountyReleaseGapPercent())
+                + ", 해제 조건: 상대 플레이어 처치"
                 + ", 보상 " + configRepository.bountyRewardCoins() + "코인"));
         lines.add(Component.text("현상수배 상태: " + wantedTeamName()));
         lines.add(Component.text("선두: " + teamName(evaluation.leader()) + ", 추격: " + teamName(evaluation.runnerUp())
@@ -297,15 +297,7 @@ public final class AltarService {
         BountyEvaluation evaluation = evaluateBounty(elapsedSeconds);
         GameTeam wantedTeam = currentWantedTeam().orElse(null);
         if (wantedTeam != null) {
-            if (evaluation.shouldRelease(wantedTeam, configRepository.bountyEnabled(), configRepository.bountyReleaseGapPercent())) {
-                setBountyWanted(wantedTeam, false, elapsedSeconds);
-                broadcastToParticipants(Component.text("[현상수배 해제] ")
-                        .append(Component.text(wantedTeam.color().displayName(), TextColor.fromHexString(wantedTeam.color().hex())))
-                        .append(Component.text(" 팀의 현상수배가 해제되었습니다.")));
-                scoreboardService.updateBoard(gamePlayerService.all(), teamService.all());
-            } else {
-                applyBountyGlow(wantedTeam, true);
-            }
+            applyBountyGlow(wantedTeam, true);
             return;
         }
         if (!evaluation.canActivate()) {
@@ -403,7 +395,7 @@ public final class AltarService {
                 .append(Component.text(team.color().displayName(), TextColor.fromHexString(team.color().hex())))
                 .append(Component.text(" 팀의 "))
                 .append(Component.text(victim.getName(), NamedTextColor.YELLOW))
-                .append(Component.text("님이 사망하여 현상수배가 해제되었습니다.")));
+                .append(Component.text("님이 상대 플레이어에게 처치되어 현상수배가 해제되었습니다.")));
         scoreboardService.updateBoard(gamePlayerService.all(), teamService.all());
     }
 
@@ -486,28 +478,6 @@ public final class AltarService {
         return String.format("%.1f%%", value);
     }
 
-    private void refreshBountyStatus() {
-        for (GameTeam team : teamService.all()) {
-            boolean shouldBeWanted = false;
-            if (team.bountyWanted() == shouldBeWanted) {
-                applyBountyGlow(team, shouldBeWanted);
-                continue;
-            }
-            team.clearBountyRewardClaims();
-            team.setBountyWanted(shouldBeWanted);
-            applyBountyGlow(team, shouldBeWanted);
-            if (shouldBeWanted) {
-                broadcastToParticipants(Component.text("[현상수배] ")
-                        .append(Component.text(team.color().displayName(), TextColor.fromHexString(team.color().hex())))
-                        .append(Component.text(" 팀이 제단 " + team.capturedAltars().size() + "개를 점령했습니다.")));
-            } else {
-                broadcastToParticipants(Component.text("[현상수배 해제] ")
-                        .append(Component.text(team.color().displayName(), TextColor.fromHexString(team.color().hex())))
-                        .append(Component.text(" 팀의 현상수배가 해제되었습니다.")));
-            }
-        }
-    }
-
     private void applyBountyGlow(GameTeam team, boolean glowing) {
         for (java.util.UUID member : team.members()) {
             Player player = org.bukkit.Bukkit.getPlayer(member);
@@ -546,13 +516,6 @@ public final class AltarService {
             return ranking.size() < 2 ? null : ranking.get(1);
         }
 
-        private boolean shouldRelease(GameTeam wantedTeam, boolean enabled, double releaseGapPercent) {
-            if (!enabled || ranking.isEmpty()) {
-                return true;
-            }
-            GameTeam leader = ranking.get(0);
-            return !leader.id().equals(wantedTeam.id()) || leadGap <= releaseGapPercent;
-        }
     }
 
     private boolean sameBlock(Location first, Location second) {
