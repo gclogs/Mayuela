@@ -1,0 +1,64 @@
+# Gradle
+.gradle/
+build/
+out/
+
+# Java build artifacts
+*.class
+*.jar
+*.war
+*.ear
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# Generated class output
+bin/
+
+# Local Paper / Minecraft server runtime
+run/
+server/
+logs/
+cache/
+libraries/
+versions/
+world/
+world_nether/
+world_the_end/
+plugins/
+crash-reports/
+eula.txt
+server.properties
+banned-ips.json
+banned-players.json
+ops.json
+usercache.json
+whitelist.json
+
+# Logs and JVM crash files
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
