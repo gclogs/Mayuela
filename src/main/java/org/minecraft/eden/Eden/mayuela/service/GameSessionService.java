@@ -37,13 +37,14 @@ public final class GameSessionService {
     private final MatchStatsService matchStatsService;
     private final MessageService messageService;
     private final KnockbackService knockbackService;
+    private final GameMusicService musicService;
     private GamePhase phase = GamePhase.WAITING;
     private BukkitTask readyTask;
     private BukkitTask activationTask;
     private long playStartedAtMillis;
     private TeamService.MatchMode matchMode = TeamService.MatchMode.TEAM;
 
-    public GameSessionService(JavaPlugin plugin, ConfigRepository configRepository, GamePlayerService gamePlayerService, TeamService teamService, AltarService altarService, InventoryService inventoryService, ScoreboardService scoreboardService, DisplayService displayService, CoinService coinService, MatchStatsService matchStatsService, MessageService messageService, KnockbackService knockbackService) {
+    public GameSessionService(JavaPlugin plugin, ConfigRepository configRepository, GamePlayerService gamePlayerService, TeamService teamService, AltarService altarService, InventoryService inventoryService, ScoreboardService scoreboardService, DisplayService displayService, CoinService coinService, MatchStatsService matchStatsService, MessageService messageService, KnockbackService knockbackService, GameMusicService musicService) {
         this.plugin = plugin;
         this.configRepository = configRepository;
         this.gamePlayerService = gamePlayerService;
@@ -56,6 +57,7 @@ public final class GameSessionService {
         this.matchStatsService = matchStatsService;
         this.messageService = messageService;
         this.knockbackService = knockbackService;
+        this.musicService = musicService;
     }
 
     public GamePhase phase() {
@@ -180,6 +182,7 @@ public final class GameSessionService {
         }
         displayService.startFollowTask();
         coinService.start();
+        musicService.start();
         int activationTickSeconds = Math.max(1, configRepository.activationTickSeconds());
         long period = activationTickSeconds * 20L;
         activationTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -203,6 +206,7 @@ public final class GameSessionService {
 
     public void forceStop() {
         knockbackService.stop();
+        musicService.stop();
         if (readyTask != null) {
             readyTask.cancel();
             readyTask = null;

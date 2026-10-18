@@ -94,7 +94,7 @@ public final class GameCommand implements CommandExecutor, TabCompleter {
                 configRepository.load();
                 messageService.reload();
                 altarService.reload();
-                sender.sendMessage(Component.text("게임 설정을 다시 로드했습니다: game.yml, alter.yml, maps.yml, model.yml, messages.yml"));
+                sender.sendMessage(Component.text("게임 설정을 다시 로드했습니다: game.yml, music.yml, alter.yml, maps.yml, model.yml, messages.yml"));
                 sender.sendMessage(Component.text("로드된 제단: " + altarService.count() + "개"));
                 return true;
             }

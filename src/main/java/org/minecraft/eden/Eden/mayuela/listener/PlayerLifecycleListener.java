@@ -14,6 +14,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -35,6 +36,7 @@ import org.minecraft.eden.Eden.mayuela.service.RespawnProtectionService;
 import org.minecraft.eden.Eden.mayuela.service.ScoreboardService;
 import org.minecraft.eden.Eden.mayuela.service.TeamService;
 import org.minecraft.eden.Eden.mayuela.service.KnockbackService;
+import org.minecraft.eden.Eden.mayuela.service.GameMusicService;
 import org.minecraft.eden.Eden.mayuela.sound.MayuelaSound;
 
 public final class PlayerLifecycleListener implements Listener {
@@ -55,8 +57,9 @@ public final class PlayerLifecycleListener implements Listener {
     private final RespawnProtectionService respawnProtectionService;
     private final MessageService messageService;
     private final KnockbackService knockbackService;
+    private final GameMusicService musicService;
 
-    public PlayerLifecycleListener(ConfigRepository configRepository, GamePlayerService gamePlayerService, GameSessionService gameSessionService, TeamService teamService, AltarService altarService, InventoryService inventoryService, DisplayService displayService, ScoreboardService scoreboardService, CoinService coinService, MatchStatsService matchStatsService, RespawnProtectionService respawnProtectionService, MessageService messageService, KnockbackService knockbackService) {
+    public PlayerLifecycleListener(ConfigRepository configRepository, GamePlayerService gamePlayerService, GameSessionService gameSessionService, TeamService teamService, AltarService altarService, InventoryService inventoryService, DisplayService displayService, ScoreboardService scoreboardService, CoinService coinService, MatchStatsService matchStatsService, RespawnProtectionService respawnProtectionService, MessageService messageService, KnockbackService knockbackService, GameMusicService musicService) {
         this.configRepository = configRepository;
         this.gamePlayerService = gamePlayerService;
         this.gameSessionService = gameSessionService;
@@ -70,6 +73,7 @@ public final class PlayerLifecycleListener implements Listener {
         this.respawnProtectionService = respawnProtectionService;
         this.messageService = messageService;
         this.knockbackService = knockbackService;
+        this.musicService = musicService;
     }
 
     @EventHandler
@@ -174,6 +178,7 @@ public final class PlayerLifecycleListener implements Listener {
                         altarService.restoreStrengthIfActive(player, team);
                         altarService.restoreBountyGlowIfActive(player, team);
                         playRespawnFreeze(player);
+                        musicService.playFor(player);
                     }
                 }, 1L));
     }
@@ -254,6 +259,7 @@ public final class PlayerLifecycleListener implements Listener {
             altarService.restoreStrengthIfActive(player, team);
             altarService.restoreBountyGlowIfActive(player, team);
             if (gameSessionService.phase() == GamePhase.PLAYING) {
+                musicService.playFor(player);
                 displayService.spawnPlayerDisplay(player, team, configRepository.bountyRewardCoins());
                 scoreboardService.updateBoard(gamePlayerService.all(), teamService.all());
             } else {
@@ -261,6 +267,13 @@ public final class PlayerLifecycleListener implements Listener {
                 scoreboardService.updateBoard(gamePlayerService.all(), teamService);
             }
         }, 1L);
+    }
+
+    @EventHandler
+    public void onResourcePackLoaded(PlayerResourcePackStatusEvent event) {
+        if (event.getStatus() == PlayerResourcePackStatusEvent.Status.SUCCESSFULLY_LOADED) {
+            musicService.playFor(event.getPlayer());
+        }
     }
 
     @EventHandler
@@ -301,6 +314,7 @@ public final class PlayerLifecycleListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         knockbackService.clear(event.getPlayer());
+        musicService.stopFor(event.getPlayer());
         GamePlayer gamePlayer = gamePlayerService.find(event.getPlayer().getUniqueId()).orElse(null);
         if (gamePlayer == null) {
             return;

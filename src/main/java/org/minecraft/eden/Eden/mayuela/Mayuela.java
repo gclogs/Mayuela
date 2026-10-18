@@ -28,6 +28,7 @@ import org.minecraft.eden.Eden.mayuela.service.ScoreboardService;
 import org.minecraft.eden.Eden.mayuela.service.ShopService;
 import org.minecraft.eden.Eden.mayuela.service.TeamService;
 import org.minecraft.eden.Eden.mayuela.service.KnockbackService;
+import org.minecraft.eden.Eden.mayuela.service.GameMusicService;
 
 public final class Mayuela extends JavaPlugin {
 
@@ -50,11 +51,12 @@ public final class Mayuela extends JavaPlugin {
         MatchStatsService matchStatsService = new MatchStatsService(this, configRepository, gamePlayerService, teamService);
         RespawnProtectionService respawnProtectionService = new RespawnProtectionService();
         KnockbackService knockbackService = new KnockbackService(this);
+        GameMusicService musicService = new GameMusicService(this, configRepository, gamePlayerService);
         AltarService altarService = new AltarService(configRepository, gamePlayerService, teamService, inventoryService, scoreboardService, displayService, matchStatsService, messageService);
         CoinService coinService = new CoinService(this, configRepository, gamePlayerService, teamService, scoreboardService, matchStatsService, messageService);
         ShopService shopService = new ShopService(configRepository, coinService, matchStatsService, messageService);
         PdcMonitorService pdcMonitorService = new PdcMonitorService();
-        gameSessionService = new GameSessionService(this, configRepository, gamePlayerService, teamService, altarService, inventoryService, scoreboardService, displayService, coinService, matchStatsService, messageService, knockbackService);
+        gameSessionService = new GameSessionService(this, configRepository, gamePlayerService, teamService, altarService, inventoryService, scoreboardService, displayService, coinService, matchStatsService, messageService, knockbackService, musicService);
 
         JoinCommand joinCommand = new JoinCommand(configRepository, gamePlayerService, teamService, scoreboardService, gameSessionService, messageService);
         LeaveCommand leaveCommand = new LeaveCommand(gamePlayerService, teamService, scoreboardService, gameSessionService, messageService);
@@ -74,7 +76,7 @@ public final class Mayuela extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CoinListener(coinService), this);
         getServer().getPluginManager().registerEvents(new ShopListener(shopService), this);
         getServer().getPluginManager().registerEvents(new ShopItemListener(configRepository, shopService, matchStatsService, respawnProtectionService, teamService, messageService, knockbackService), this);
-        getServer().getPluginManager().registerEvents(new PlayerLifecycleListener(configRepository, gamePlayerService, gameSessionService, teamService, altarService, inventoryService, displayService, scoreboardService, coinService, matchStatsService, respawnProtectionService, messageService, knockbackService), this);
+        getServer().getPluginManager().registerEvents(new PlayerLifecycleListener(configRepository, gamePlayerService, gameSessionService, teamService, altarService, inventoryService, displayService, scoreboardService, coinService, matchStatsService, respawnProtectionService, messageService, knockbackService, musicService), this);
 
         getLogger().info("Mayuela enabled.");
     }

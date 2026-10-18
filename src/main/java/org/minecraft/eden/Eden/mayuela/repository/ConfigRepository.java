@@ -19,9 +19,11 @@ import org.minecraft.eden.Eden.mayuela.model.PlayerColor;
 
 public final class ConfigRepository {
 
+    private static final String MUSIC_FILE = "music.yml";
     private final JavaPlugin plugin;
     private final File dataFolder;
     private YamlConfiguration gameConfig;
+    private YamlConfiguration musicConfig;
     private YamlConfiguration altarConfig;
     private YamlConfiguration mapConfig;
     private YamlConfiguration modelConfig;
@@ -36,6 +38,7 @@ public final class ConfigRepository {
             dataFolder.mkdirs();
         }
         gameConfig = loadFile("game.yml");
+        loadMusicConfig();
         altarConfig = loadFile("alter.yml");
         mapConfig = loadFile("maps.yml");
         modelConfig = loadFile("model.yml");
@@ -114,6 +117,37 @@ public final class ConfigRepository {
         return YamlConfiguration.loadConfiguration(file);
     }
 
+    private void loadMusicConfig() {
+        musicConfig = loadFile(MUSIC_FILE);
+        YamlConfiguration legacySettings = loadFile("game settings.yml");
+        for (String path : List.of("music.enabled", "music.sound", "music.duration-seconds", "music.volume")) {
+            if (!musicConfig.isSet(path)) {
+                if (legacySettings.isSet(path)) {
+                    musicConfig.set(path, legacySettings.get(path));
+                } else if (gameConfig.isSet(path)) {
+                    musicConfig.set(path, gameConfig.get(path));
+                }
+            }
+        }
+        musicConfig.addDefault("music.enabled", true);
+        musicConfig.addDefault("music.sound", "mayuela:music.game");
+        musicConfig.addDefault("music.duration-seconds", 180);
+        musicConfig.addDefault("music.volume", 0.5);
+        musicConfig.options().copyDefaults(true);
+        musicConfig.options().setHeader(List.of(
+                "Mayuela 게임 배경음악 설정",
+                "플레이어에게 해당 OGG가 포함된 리소스팩이 적용되어 있어야 합니다.",
+                "변경 후 대기 상태에서 /game reload를 실행하면 다음 경기부터 적용됩니다."));
+        musicConfig.setComments("music.enabled", List.of("경기 배경음악 사용 여부"));
+        musicConfig.setComments("music.sound", List.of("sounds.json에 등록한 사운드 이벤트 키 (OGG 파일 경로가 아님)"));
+        musicConfig.setComments("music.duration-seconds", List.of("반복 간격(초). 실제 곡 길이를 올림해 입력하세요. 짧으면 곡이 잘립니다."));
+        musicConfig.setComments("music.volume", List.of("볼륨: 0.0~1.0. 클라이언트의 음악 볼륨도 적용됩니다."));
+        // Preserve the legacy values if the new file cannot be saved.
+        if (save(musicConfig, MUSIC_FILE)) {
+            gameConfig.set("music", null);
+        }
+    }
+
     public int maxPlayers() {
         return gameConfig.getInt("game.max-players", 10);
     }
@@ -128,6 +162,23 @@ public final class ConfigRepository {
 
     public int activationTickSeconds() {
         return gameConfig.getInt("altar.activation-tick-seconds", 1);
+    }
+
+    public boolean musicEnabled() {
+        return musicConfig.getBoolean("music.enabled", true);
+    }
+
+    public String musicSound() {
+        return musicConfig.getString("music.sound", "mayuela:music.game").trim();
+    }
+
+    public int musicDurationSeconds() {
+        return Math.max(1, musicConfig.getInt("music.duration-seconds", 180));
+    }
+
+    public float musicVolume() {
+        double volume = musicConfig.getDouble("music.volume", 0.5);
+        return Double.isFinite(volume) ? (float) Math.max(0.0, Math.min(1.0, volume)) : 0.5f;
     }
 
     public double baseIncreasePerAltar() {
@@ -469,11 +520,13 @@ public final class ConfigRepository {
         save(modelConfig, "model.yml");
     }
 
-    private void save(YamlConfiguration config, String name) {
+    private boolean save(YamlConfiguration config, String name) {
         try {
             config.save(new File(dataFolder, name));
+            return true;
         } catch (IOException exception) {
             plugin.getLogger().severe(name + " 저장 실패: " + exception.getMessage());
+            return false;
         }
     }
 }
