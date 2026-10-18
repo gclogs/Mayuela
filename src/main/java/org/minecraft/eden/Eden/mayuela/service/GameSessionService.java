@@ -36,13 +36,14 @@ public final class GameSessionService {
     private final CoinService coinService;
     private final MatchStatsService matchStatsService;
     private final MessageService messageService;
+    private final KnockbackService knockbackService;
     private GamePhase phase = GamePhase.WAITING;
     private BukkitTask readyTask;
     private BukkitTask activationTask;
     private long playStartedAtMillis;
     private TeamService.MatchMode matchMode = TeamService.MatchMode.TEAM;
 
-    public GameSessionService(JavaPlugin plugin, ConfigRepository configRepository, GamePlayerService gamePlayerService, TeamService teamService, AltarService altarService, InventoryService inventoryService, ScoreboardService scoreboardService, DisplayService displayService, CoinService coinService, MatchStatsService matchStatsService, MessageService messageService) {
+    public GameSessionService(JavaPlugin plugin, ConfigRepository configRepository, GamePlayerService gamePlayerService, TeamService teamService, AltarService altarService, InventoryService inventoryService, ScoreboardService scoreboardService, DisplayService displayService, CoinService coinService, MatchStatsService matchStatsService, MessageService messageService, KnockbackService knockbackService) {
         this.plugin = plugin;
         this.configRepository = configRepository;
         this.gamePlayerService = gamePlayerService;
@@ -54,6 +55,7 @@ public final class GameSessionService {
         this.coinService = coinService;
         this.matchStatsService = matchStatsService;
         this.messageService = messageService;
+        this.knockbackService = knockbackService;
     }
 
     public GamePhase phase() {
@@ -200,6 +202,7 @@ public final class GameSessionService {
     }
 
     public void forceStop() {
+        knockbackService.stop();
         if (readyTask != null) {
             readyTask.cancel();
             readyTask = null;

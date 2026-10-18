@@ -34,6 +34,7 @@ import org.minecraft.eden.Eden.mayuela.service.MatchStatsService;
 import org.minecraft.eden.Eden.mayuela.service.RespawnProtectionService;
 import org.minecraft.eden.Eden.mayuela.service.ScoreboardService;
 import org.minecraft.eden.Eden.mayuela.service.TeamService;
+import org.minecraft.eden.Eden.mayuela.service.KnockbackService;
 import org.minecraft.eden.Eden.mayuela.sound.MayuelaSound;
 
 public final class PlayerLifecycleListener implements Listener {
@@ -53,8 +54,9 @@ public final class PlayerLifecycleListener implements Listener {
     private final MatchStatsService matchStatsService;
     private final RespawnProtectionService respawnProtectionService;
     private final MessageService messageService;
+    private final KnockbackService knockbackService;
 
-    public PlayerLifecycleListener(ConfigRepository configRepository, GamePlayerService gamePlayerService, GameSessionService gameSessionService, TeamService teamService, AltarService altarService, InventoryService inventoryService, DisplayService displayService, ScoreboardService scoreboardService, CoinService coinService, MatchStatsService matchStatsService, RespawnProtectionService respawnProtectionService, MessageService messageService) {
+    public PlayerLifecycleListener(ConfigRepository configRepository, GamePlayerService gamePlayerService, GameSessionService gameSessionService, TeamService teamService, AltarService altarService, InventoryService inventoryService, DisplayService displayService, ScoreboardService scoreboardService, CoinService coinService, MatchStatsService matchStatsService, RespawnProtectionService respawnProtectionService, MessageService messageService, KnockbackService knockbackService) {
         this.configRepository = configRepository;
         this.gamePlayerService = gamePlayerService;
         this.gameSessionService = gameSessionService;
@@ -67,10 +69,12 @@ public final class PlayerLifecycleListener implements Listener {
         this.matchStatsService = matchStatsService;
         this.respawnProtectionService = respawnProtectionService;
         this.messageService = messageService;
+        this.knockbackService = knockbackService;
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent event) {
+        knockbackService.clear(event.getPlayer());
         if (gamePlayerService.find(event.getPlayer().getUniqueId()).isEmpty()) {
             return;
         }
@@ -296,6 +300,7 @@ public final class PlayerLifecycleListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
+        knockbackService.clear(event.getPlayer());
         GamePlayer gamePlayer = gamePlayerService.find(event.getPlayer().getUniqueId()).orElse(null);
         if (gamePlayer == null) {
             return;

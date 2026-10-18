@@ -9,6 +9,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -18,7 +19,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.Vector;
 import org.minecraft.eden.Eden.mayuela.message.MayuelaMessage;
 import org.minecraft.eden.Eden.mayuela.message.MessageService;
 import org.minecraft.eden.Eden.mayuela.model.GameTeam;
@@ -27,6 +27,7 @@ import org.minecraft.eden.Eden.mayuela.service.MatchStatsService;
 import org.minecraft.eden.Eden.mayuela.service.RespawnProtectionService;
 import org.minecraft.eden.Eden.mayuela.service.ShopService;
 import org.minecraft.eden.Eden.mayuela.service.TeamService;
+import org.minecraft.eden.Eden.mayuela.service.KnockbackService;
 import org.minecraft.eden.Eden.mayuela.sound.MayuelaSound;
 
 public final class ShopItemListener implements Listener {
@@ -37,17 +38,19 @@ public final class ShopItemListener implements Listener {
     private final RespawnProtectionService respawnProtectionService;
     private final TeamService teamService;
     private final MessageService messageService;
+    private final KnockbackService knockbackService;
     private final Map<UUID, Long> knockbackResistanceExpiresAt = new HashMap<>();
     private final Map<UUID, Long> jumpBoostExpiresAt = new HashMap<>();
     private final Map<UUID, Long> buffFeedbackTokens = new HashMap<>();
 
-    public ShopItemListener(ConfigRepository configRepository, ShopService shopService, MatchStatsService matchStatsService, RespawnProtectionService respawnProtectionService, TeamService teamService, MessageService messageService) {
+    public ShopItemListener(ConfigRepository configRepository, ShopService shopService, MatchStatsService matchStatsService, RespawnProtectionService respawnProtectionService, TeamService teamService, MessageService messageService, KnockbackService knockbackService) {
         this.configRepository = configRepository;
         this.shopService = shopService;
         this.matchStatsService = matchStatsService;
         this.respawnProtectionService = respawnProtectionService;
         this.teamService = teamService;
         this.messageService = messageService;
+        this.knockbackService = knockbackService;
     }
 
     @EventHandler
@@ -89,12 +92,16 @@ public final class ShopItemListener implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player attacker)) {
             return;
         }
         boolean holdingKnockbackStick = shopService.readShopItem(attacker.getInventory().getItemInMainHand()) == ShopService.ShopItem.KNOCKBACK_STICK;
+        if (event.isCancelled() && (!(event.getEntity() instanceof Player player)
+                || !holdingKnockbackStick || !respawnProtectionService.isInvulnerable(player))) {
+            return;
+        }
         if (!(event.getEntity() instanceof Player victim)) {
             if (!holdingKnockbackStick) {
                 return;
@@ -112,6 +119,10 @@ public final class ShopItemListener implements Listener {
             return;
         }
         if (!holdingKnockbackStick) {
+            return;
+        }
+        if (respawnProtectionService.isFrozen(victim)) {
+            event.setCancelled(true);
             return;
         }
         event.setDamage(0.0);
@@ -133,13 +144,8 @@ public final class ShopItemListener implements Listener {
             attacker.sendMessage(Component.text(victim.getName() + "님이 밀치기 저항 상태입니다."));
             return;
         }
-        Vector direction = victim.getLocation().toVector().subtract(attacker.getLocation().toVector());
-        if (direction.lengthSquared() == 0) {
-            direction = attacker.getLocation().getDirection();
-        }
-        direction.normalize().multiply(Math.max(1, configRepository.knockbackStickBlocks()) * 0.22);
-        direction.setY(Math.max(0.35, direction.getY() + 0.25));
-        victim.setVelocity(direction);
+        event.setCancelled(true);
+        knockbackService.push(attacker, victim, configRepository.knockbackStickBlocks());
         MayuelaSound.KNOCKBACK_STICK_HIT.play(attacker);
         MayuelaSound.KNOCKBACK_STICK_HIT.play(victim);
         matchStatsService.recordKnockbackHit(matchStatsService.elapsedSeconds(), attacker, victim, false);
